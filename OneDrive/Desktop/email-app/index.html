@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Submission Form</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Email Submission Form</h1>
+            <div class="form-group">
+                <input type="email" id="emailInput" placeholder="Enter your email address" required>
+            </div>
+            <div class="button-group">
+                <button id="submitBtn" class="btn btn-primary">Submit Email</button>
+                <button id="showEmailsBtn" class="btn btn-secondary">Show Emails</button>
+            </div>
+            <div id="message" class="message"></div>
+            <div class="emails-container">
+                <h3>Stored Emails</h3>
+                <div id="emailsList" class="emails-list">
+                    <p class="placeholder">No emails stored yet!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const emailInput = document.getElementById('emailInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const showEmailsBtn = document.getElementById('showEmailsBtn');
+        const messageDiv = document.getElementById('message');
+        const emailsList = document.getElementById('emailsList');
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => messageDiv.style.display = 'none', 3000);
+        }
+
+        submitBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            if (!email || !email.includes('@')) {
+                showMessage('Please enter a valid email', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    emailInput.value = '';
+                    fetchEmails();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (e) {
+                showMessage('Error occurred', 'error');
+            }
+        });
+
+        showEmailsBtn.addEventListener('click', fetchEmails);
+
+        async function fetchEmails() {
+            try {
+                const res = await fetch('/emails');
+                const data = await res.json();
+                if (data.success) {
+                    if (data.emails.length === 0) {
+                        emailsList.innerHTML = '<p class="placeholder">No emails stored yet!</p>';
+                    } else {
+                        emailsList.innerHTML = data.emails.map(e => '<div class="email-item">' + e + '</div>').join('');
+                    }
+                }
+            } catch (e) {
+                showMessage('Error fetching emails', 'error');
+            }
+        }
+        fetchEmails();
+    </script>
+</body>
+</html>
